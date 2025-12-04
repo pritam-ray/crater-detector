@@ -147,8 +147,70 @@
     }
 
     @media (max-width: 768px) {
+        .result-header h1 {
+            font-size: 2rem;
+        }
+
+        .result-header p {
+            font-size: 1rem;
+            padding: 0 1rem;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-icon {
+            font-size: 2rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+        }
+
         .comparison-section {
             grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        .success-animation {
+            font-size: 4rem;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .action-buttons .btn {
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .result-header h1 {
+            font-size: 1.5rem;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .stat-card {
+            padding: 1rem;
+        }
+
+        .image-card-header h3 {
+            font-size: 1.1rem;
+        }
+
+        .success-animation {
+            font-size: 3rem;
         }
     }
 </style>

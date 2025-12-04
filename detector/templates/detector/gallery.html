@@ -109,8 +109,61 @@
     }
 
     @media (max-width: 768px) {
+        .gallery-header h1 {
+            font-size: 2rem;
+        }
+
+        .gallery-header p {
+            font-size: 1rem;
+            padding: 0 1rem;
+        }
+
         .gallery-grid {
             grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        .gallery-card-image {
+            height: 200px;
+        }
+
+        .gallery-card-info {
+            padding: 1rem;
+        }
+
+        .empty-gallery {
+            padding: 3rem 1rem;
+        }
+
+        .empty-gallery-icon {
+            font-size: 4rem;
+        }
+
+        .empty-gallery h2 {
+            font-size: 1.5rem;
+        }
+
+        .empty-gallery p {
+            font-size: 1rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .gallery-header h1 {
+            font-size: 1.5rem;
+        }
+
+        .gallery-card-image {
+            height: 180px;
+        }
+
+        .crater-badge {
+            font-size: 0.9rem;
+            padding: 0.4rem 0.8rem;
+        }
+
+        .date-info {
+            font-size: 0.85rem;
         }
     }
 </style>
