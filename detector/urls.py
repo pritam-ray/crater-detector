@@ -6,4 +6,5 @@ urlpatterns = [
     path('process/<int:image_id>/', views.process_image, name='process_image'),
     path('result/<int:image_id>/', views.result, name='result'),
     path('gallery/', views.gallery, name='gallery'),
+    path('delete/<int:image_id>/', views.delete_image, name='delete_image'),
 ]

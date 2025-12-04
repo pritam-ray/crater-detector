@@ -120,3 +120,31 @@ def gallery(request):
     return render(request, 'detector/gallery.html', {
         'images': images
     })
+
+
+def delete_image(request, image_id):
+    """Delete an uploaded image and its processed result"""
+    uploaded_image = get_object_or_404(UploadedImage, id=image_id)
+    
+    try:
+        # Delete the original image file
+        if uploaded_image.original_image and os.path.exists(uploaded_image.original_image.path):
+            os.remove(uploaded_image.original_image.path)
+        
+        # Delete the processed image file
+        if uploaded_image.processed_image and os.path.exists(uploaded_image.processed_image.path):
+            os.remove(uploaded_image.processed_image.path)
+        
+        # Delete the database record
+        uploaded_image.delete()
+        
+        messages.success(request, 'Image deleted successfully!')
+    except Exception as e:
+        messages.error(request, f'Error deleting image: {str(e)}')
+    
+    # Redirect to gallery or index based on referrer
+    referer = request.META.get('HTTP_REFERER', '')
+    if 'gallery' in referer:
+        return redirect('gallery')
+    else:
+        return redirect('index')

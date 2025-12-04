@@ -146,6 +146,17 @@
         transform: translateY(-2px);
     }
 
+    .btn-danger {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        color: white;
+        box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
+    }
+
+    .btn-danger:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 25px rgba(220, 53, 69, 0.6);
+    }
+
     @media (max-width: 768px) {
         .result-header h1 {
             font-size: 2rem;
@@ -276,6 +287,17 @@
     <div class="action-buttons">
         <a href="{% url 'index' %}" class="btn btn-primary">🚀 Analyze Another Image</a>
         <a href="{% url 'gallery' %}" class="btn btn-secondary">📸 View Gallery</a>
+        <button onclick="deleteImage({{ uploaded_image.id }})" class="btn btn-danger">🗑️ Delete This Image</button>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function deleteImage(imageId) {
+        if (confirm('Are you sure you want to delete this image? This action cannot be undone.')) {
+            window.location.href = `/delete/${imageId}/`;
+        }
+    }
+</script>
 {% endblock %}
