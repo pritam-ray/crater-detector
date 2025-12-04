@@ -1,0 +1,280 @@
+{% extends 'detector/base.html' %}
+
+{% block title %}Search Results - Lunar Crater Detector{% endblock %}
+
+{% block extra_css %}
+<style>
+    .result-container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .result-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .result-header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .success-animation {
+        text-align: center;
+        font-size: 5rem;
+        margin-bottom: 1rem;
+        animation: bounce 1s ease infinite;
+    }
+
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-20px); }
+    }
+
+    .results-grid {
+        display: grid;
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
+
+    .result-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(0, 212, 255, 0.3);
+        border-radius: 15px;
+        overflow: hidden;
+        transition: all 0.3s;
+    }
+
+    .result-card:hover {
+        border-color: #00d4ff;
+        box-shadow: 0 8px 25px rgba(0, 212, 255, 0.4);
+    }
+
+    .result-card-header {
+        background: rgba(0, 212, 255, 0.1);
+        padding: 1.5rem;
+        text-align: center;
+        border-bottom: 2px solid rgba(0, 212, 255, 0.3);
+    }
+
+    .result-card-header h3 {
+        font-size: 1.5rem;
+        color: #00d4ff;
+        margin: 0;
+    }
+
+    .result-card-body {
+        padding: 1rem;
+    }
+
+    .result-card img {
+        width: 100%;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .result-card img:hover {
+        transform: scale(1.02);
+    }
+
+    .download-link {
+        display: inline-block;
+        padding: 0.75rem 1.5rem;
+        background: rgba(0, 212, 255, 0.2);
+        border: 1px solid #00d4ff;
+        border-radius: 5px;
+        color: #00d4ff;
+        text-decoration: none;
+        margin-top: 1rem;
+        transition: all 0.3s;
+    }
+
+    .download-link:hover {
+        background: rgba(0, 212, 255, 0.3);
+        transform: translateY(-2px);
+    }
+
+    .action-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-top: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .no-result {
+        background: rgba(220, 53, 69, 0.1);
+        border: 2px solid rgba(220, 53, 69, 0.5);
+        border-radius: 15px;
+        padding: 2rem;
+        text-align: center;
+        color: #dc3545;
+    }
+
+    .algorithm-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+
+    @media (max-width: 768px) {
+        .result-header h1 {
+            font-size: 2rem;
+        }
+
+        .result-header p {
+            font-size: 1rem;
+            padding: 0 1rem;
+        }
+
+        .success-animation {
+            font-size: 4rem;
+        }
+
+        .results-grid {
+            gap: 1.5rem;
+        }
+
+        .result-card-header h3 {
+            font-size: 1.2rem;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .action-buttons .btn {
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .result-header h1 {
+            font-size: 1.5rem;
+        }
+
+        .success-animation {
+            font-size: 3rem;
+        }
+
+        .algorithm-badge {
+            font-size: 1rem;
+            padding: 0.4rem 0.8rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="result-container">
+    <div class="result-header">
+        <div class="success-animation">✅</div>
+        <h1>Crater Matching Complete!</h1>
+        <p style="color: #aaaaaa; font-size: 1.1rem;">Feature matching results using SIFT, SURF, and ORB algorithms</p>
+    </div>
+
+    <div class="results-grid">
+        {% if results.SIFT %}
+        <div class="result-card">
+            <div class="result-card-header">
+                <span class="algorithm-badge">🎯 SIFT</span>
+                <h3>Scale-Invariant Feature Transform</h3>
+            </div>
+            <div class="result-card-body">
+                <img src="{{ MEDIA_URL }}{{ results.SIFT }}" alt="SIFT Matching Result" onclick="window.open(this.src, '_blank')">
+                <div style="text-align: center;">
+                    <a href="{{ MEDIA_URL }}{{ results.SIFT }}" download class="download-link">
+                        📥 Download SIFT Result
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="result-card">
+            <div class="result-card-header">
+                <span class="algorithm-badge">🎯 SIFT</span>
+                <h3>Scale-Invariant Feature Transform</h3>
+            </div>
+            <div class="result-card-body">
+                <div class="no-result">
+                    <p>❌ SIFT matching failed or found no significant matches</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if results.SURF %}
+        <div class="result-card">
+            <div class="result-card-header">
+                <span class="algorithm-badge">⚡ SURF</span>
+                <h3>Speeded-Up Robust Features</h3>
+            </div>
+            <div class="result-card-body">
+                <img src="{{ MEDIA_URL }}{{ results.SURF }}" alt="SURF Matching Result" onclick="window.open(this.src, '_blank')">
+                <div style="text-align: center;">
+                    <a href="{{ MEDIA_URL }}{{ results.SURF }}" download class="download-link">
+                        📥 Download SURF Result
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="result-card">
+            <div class="result-card-header">
+                <span class="algorithm-badge">⚡ SURF</span>
+                <h3>Speeded-Up Robust Features</h3>
+            </div>
+            <div class="result-card-body">
+                <div class="no-result">
+                    <p>❌ SURF matching failed. Note: SURF requires opencv-contrib-python</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if results.ORB %}
+        <div class="result-card">
+            <div class="result-card-header">
+                <span class="algorithm-badge">🚀 ORB</span>
+                <h3>Oriented FAST and Rotated BRIEF</h3>
+            </div>
+            <div class="result-card-body">
+                <img src="{{ MEDIA_URL }}{{ results.ORB }}" alt="ORB Matching Result" onclick="window.open(this.src, '_blank')">
+                <div style="text-align: center;">
+                    <a href="{{ MEDIA_URL }}{{ results.ORB }}" download class="download-link">
+                        📥 Download ORB Result
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="result-card">
+            <div class="result-card-header">
+                <span class="algorithm-badge">🚀 ORB</span>
+                <h3>Oriented FAST and Rotated BRIEF</h3>
+            </div>
+            <div class="result-card-body">
+                <div class="no-result">
+                    <p>❌ ORB matching failed or found no significant matches</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="action-buttons">
+        <a href="{% url 'crater_search' %}" class="btn btn-primary">🔍 Search Another Crater</a>
+        <a href="{% url 'index' %}" class="btn btn-secondary">🏠 Back to Home</a>
+    </div>
+</div>
+{% endblock %}

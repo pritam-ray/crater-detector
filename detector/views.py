@@ -2,9 +2,10 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.conf import settings
 from .models import UploadedImage
-from .forms import ImageUploadForm
+from .forms import ImageUploadForm, CraterSearchForm
 import os
 import cv2
+import numpy as np
 from ultralytics import YOLO
 from datetime import datetime
 from PIL import Image as PILImage
@@ -148,3 +149,173 @@ def delete_image(request, image_id):
         return redirect('gallery')
     else:
         return redirect('index')
+
+
+def crater_search(request):
+    """Search for a crater in moon.tif using SIFT, SURF, and ORB"""
+    if request.method == 'POST':
+        form = CraterSearchForm(request.POST, request.FILES)
+        if form.is_valid():
+            search_image = request.FILES['search_image']
+            
+            # Save uploaded search image temporarily
+            temp_dir = os.path.join(settings.MEDIA_ROOT, 'temp')
+            os.makedirs(temp_dir, exist_ok=True)
+            temp_path = os.path.join(temp_dir, search_image.name)
+            
+            with open(temp_path, 'wb+') as destination:
+                for chunk in search_image.chunks():
+                    destination.write(chunk)
+            
+            # Path to moon.tif
+            moon_path = os.path.join(settings.MEDIA_ROOT, 'lunar dataset', 'moon.tif')
+            
+            if not os.path.exists(moon_path):
+                messages.error(request, 'Moon dataset (moon.tif) not found!')
+                return redirect('crater_search')
+            
+            try:
+                # Perform matching with all three methods
+                results = perform_crater_matching(temp_path, moon_path)
+                
+                # Save result images
+                result_files = {}
+                results_dir = os.path.join(settings.MEDIA_ROOT, 'search_results')
+                os.makedirs(results_dir, exist_ok=True)
+                
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                
+                for method, result_img in results.items():
+                    if result_img is not None:
+                        result_filename = f'{method}_match_{timestamp}.jpg'
+                        result_path = os.path.join(results_dir, result_filename)
+                        cv2.imwrite(result_path, result_img)
+                        result_files[method] = os.path.join('search_results', result_filename)
+                
+                # Clean up temp file
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                
+                return render(request, 'detector/search_result.html', {
+                    'results': result_files,
+                    'search_image': search_image.name
+                })
+                
+            except Exception as e:
+                messages.error(request, f'Error during crater matching: {str(e)}')
+                return redirect('crater_search')
+    else:
+        form = CraterSearchForm()
+    
+    return render(request, 'detector/crater_search.html', {'form': form})
+
+
+def perform_crater_matching(query_path, moon_path):
+    """Perform crater matching using SIFT, SURF, and ORB algorithms"""
+    # Read images
+    query_img = cv2.imread(query_path)
+    moon_img = cv2.imread(moon_path)
+    
+    if query_img is None or moon_img is None:
+        raise ValueError('Failed to read images')
+    
+    # Convert to grayscale
+    query_gray = cv2.cvtColor(query_img, cv2.COLOR_BGR2GRAY)
+    moon_gray = cv2.cvtColor(moon_img, cv2.COLOR_BGR2GRAY)
+    
+    results = {}
+    
+    # 1. SIFT (Scale-Invariant Feature Transform)
+    try:
+        sift = cv2.SIFT_create()
+        kp1_sift, des1_sift = sift.detectAndCompute(query_gray, None)
+        kp2_sift, des2_sift = sift.detectAndCompute(moon_gray, None)
+        
+        if des1_sift is not None and des2_sift is not None:
+            bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=False)
+            matches_sift = bf.knnMatch(des1_sift, des2_sift, k=2)
+            
+            # Apply ratio test
+            good_matches_sift = []
+            for match_pair in matches_sift:
+                if len(match_pair) == 2:
+                    m, n = match_pair
+                    if m.distance < 0.75 * n.distance:
+                        good_matches_sift.append(m)
+            
+            # Draw matches
+            result_sift = cv2.drawMatches(query_img, kp1_sift, moon_img, kp2_sift, 
+                                         good_matches_sift[:50], None, 
+                                         flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+            
+            # Add text with match count
+            cv2.putText(result_sift, f'SIFT: {len(good_matches_sift)} matches', 
+                       (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            results['SIFT'] = result_sift
+    except Exception as e:
+        print(f'SIFT error: {e}')
+        results['SIFT'] = None
+    
+    # 2. SURF (Speeded-Up Robust Features) - requires opencv-contrib-python
+    try:
+        surf = cv2.xfeatures2d.SURF_create(400)
+        kp1_surf, des1_surf = surf.detectAndCompute(query_gray, None)
+        kp2_surf, des2_surf = surf.detectAndCompute(moon_gray, None)
+        
+        if des1_surf is not None and des2_surf is not None:
+            bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=False)
+            matches_surf = bf.knnMatch(des1_surf, des2_surf, k=2)
+            
+            # Apply ratio test
+            good_matches_surf = []
+            for match_pair in matches_surf:
+                if len(match_pair) == 2:
+                    m, n = match_pair
+                    if m.distance < 0.75 * n.distance:
+                        good_matches_surf.append(m)
+            
+            # Draw matches
+            result_surf = cv2.drawMatches(query_img, kp1_surf, moon_img, kp2_surf, 
+                                         good_matches_surf[:50], None, 
+                                         flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+            
+            # Add text with match count
+            cv2.putText(result_surf, f'SURF: {len(good_matches_surf)} matches', 
+                       (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            results['SURF'] = result_surf
+    except Exception as e:
+        print(f'SURF error: {e}')
+        results['SURF'] = None
+    
+    # 3. ORB (Oriented FAST and Rotated BRIEF)
+    try:
+        orb = cv2.ORB_create(nfeatures=5000)
+        kp1_orb, des1_orb = orb.detectAndCompute(query_gray, None)
+        kp2_orb, des2_orb = orb.detectAndCompute(moon_gray, None)
+        
+        if des1_orb is not None and des2_orb is not None:
+            bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
+            matches_orb = bf.knnMatch(des1_orb, des2_orb, k=2)
+            
+            # Apply ratio test
+            good_matches_orb = []
+            for match_pair in matches_orb:
+                if len(match_pair) == 2:
+                    m, n = match_pair
+                    if m.distance < 0.75 * n.distance:
+                        good_matches_orb.append(m)
+            
+            # Draw matches
+            result_orb = cv2.drawMatches(query_img, kp1_orb, moon_img, kp2_orb, 
+                                        good_matches_orb[:50], None, 
+                                        flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+            
+            # Add text with match count
+            cv2.putText(result_orb, f'ORB: {len(good_matches_orb)} matches', 
+                       (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            results['ORB'] = result_orb
+    except Exception as e:
+        print(f'ORB error: {e}')
+        results['ORB'] = None
+    
+    return results

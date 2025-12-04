@@ -5,9 +5,11 @@ A beautiful Django web application for detecting lunar craters using YOLOv8 AI t
 ## 🚀 Features
 
 - **AI-Powered Detection**: Uses YOLOv8 trained model for accurate crater detection
+- **Crater Search**: Find crater locations in lunar surface map using SIFT, SURF, and ORB feature matching
 - **Beautiful UI**: Modern, space-themed interface with animations
 - **Real-time Processing**: Upload images and get instant crater detection results
 - **Image Gallery**: Browse all previously processed images
+- **Image Deletion**: Delete unwanted images with confirmation dialogs
 - **Detailed Results**: View original vs. processed images with crater count
 - **Multiple Formats**: Supports JPG, PNG, TIF/TIFF formats
 
@@ -92,12 +94,21 @@ crater_web_app/
 - Crater count statistics
 - Processing time and date
 - Download options for both images
+- Delete image option
 
 ### 3. Gallery Page
 - Grid view of all processed images
 - Crater count badges
 - Upload dates and times
 - Click to view full results
+- Delete buttons on each image
+
+### 4. Crater Search Page
+- Upload a crater image to find its location
+- Feature matching using SIFT, SURF, and ORB algorithms
+- Visual representation of matching keypoints
+- Side-by-side comparison with moon.tif dataset
+- Download individual algorithm results
 
 ## 🤖 YOLO Model Configuration
 
@@ -112,11 +123,26 @@ d:\python\isro\runs\detect\train 55\weights\last.pt
 
 ## 🎯 Usage
 
+### Crater Detection
 1. **Upload an image** on the home page
 2. **Click "Detect Craters"** to process
 3. **View results** with crater annotations
 4. **Download** processed images
 5. **Browse gallery** to see all detections
+6. **Delete images** using the delete button
+
+### Crater Search
+1. Navigate to **Crater Search** page
+2. **Upload a crater image** you want to find
+3. System matches using **SIFT, SURF, and ORB** algorithms
+4. View **matching results** from moon.tif dataset
+5. **Download** individual algorithm results
+6. **Compare** different algorithm performances
+
+**Note**: SURF algorithm requires `opencv-contrib-python`. Install with:
+```powershell
+pip install opencv-contrib-python==4.12.0.88
+```
 
 ## 🔧 Admin Panel
 
