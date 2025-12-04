@@ -212,16 +212,44 @@ def crater_search(request):
 
 def perform_crater_matching(query_path, moon_path):
     """Perform crater matching using SIFT, SURF, and ORB algorithms"""
-    # Read images
-    query_img = cv2.imread(query_path)
-    moon_img = cv2.imread(moon_path)
+    # Read images with different flags to handle various formats
+    query_img = cv2.imread(query_path, cv2.IMREAD_COLOR)
+    moon_img = cv2.imread(moon_path, cv2.IMREAD_UNCHANGED)
     
     if query_img is None or moon_img is None:
         raise ValueError('Failed to read images')
     
-    # Convert to grayscale
-    query_gray = cv2.cvtColor(query_img, cv2.COLOR_BGR2GRAY)
-    moon_gray = cv2.cvtColor(moon_img, cv2.COLOR_BGR2GRAY)
+    # Handle different image formats for moon.tif
+    if len(moon_img.shape) == 2:
+        # Already grayscale
+        moon_gray = moon_img
+        # Convert to BGR for display
+        moon_img = cv2.cvtColor(moon_img, cv2.COLOR_GRAY2BGR)
+    elif len(moon_img.shape) == 3:
+        if moon_img.shape[2] == 1:
+            # Single channel image
+            moon_gray = moon_img[:, :, 0]
+            moon_img = cv2.cvtColor(moon_gray, cv2.COLOR_GRAY2BGR)
+        elif moon_img.shape[2] == 3:
+            # Standard BGR image
+            moon_gray = cv2.cvtColor(moon_img, cv2.COLOR_BGR2GRAY)
+        elif moon_img.shape[2] == 4:
+            # BGRA image
+            moon_img = cv2.cvtColor(moon_img, cv2.COLOR_BGRA2BGR)
+            moon_gray = cv2.cvtColor(moon_img, cv2.COLOR_BGR2GRAY)
+        else:
+            # Unknown format, try to use first channel
+            moon_gray = moon_img[:, :, 0]
+            moon_img = cv2.cvtColor(moon_gray, cv2.COLOR_GRAY2BGR)
+    else:
+        raise ValueError(f'Unexpected image shape: {moon_img.shape}')
+    
+    # Convert query image to grayscale
+    if len(query_img.shape) == 2:
+        query_gray = query_img
+        query_img = cv2.cvtColor(query_img, cv2.COLOR_GRAY2BGR)
+    else:
+        query_gray = cv2.cvtColor(query_img, cv2.COLOR_BGR2GRAY)
     
     results = {}
     
