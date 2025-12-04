@@ -1,0 +1,312 @@
+{% extends 'detector/base.html' %}
+
+{% block title %}Upload Image - Lunar Crater Detector{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero {
+        text-align: center;
+        padding: 3rem 0;
+        margin-bottom: 3rem;
+    }
+
+    .hero h1 {
+        font-size: 3.5rem;
+        margin-bottom: 1rem;
+        background: linear-gradient(90deg, #00d4ff, #ffffff, #7b2cbf);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: glow 2s ease-in-out infinite;
+    }
+
+    @keyframes glow {
+        0%, 100% { filter: brightness(1); }
+        50% { filter: brightness(1.3); }
+    }
+
+    .hero p {
+        font-size: 1.3rem;
+        color: #aaaaaa;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .upload-section {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(0, 212, 255, 0.3);
+        border-radius: 20px;
+        padding: 3rem;
+        max-width: 800px;
+        margin: 0 auto 3rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .upload-area {
+        border: 3px dashed rgba(0, 212, 255, 0.5);
+        border-radius: 15px;
+        padding: 3rem;
+        text-align: center;
+        transition: all 0.3s;
+        cursor: pointer;
+        background: rgba(0, 212, 255, 0.05);
+    }
+
+    .upload-area:hover {
+        border-color: #00d4ff;
+        background: rgba(0, 212, 255, 0.1);
+    }
+
+    .upload-area.dragover {
+        border-color: #7b2cbf;
+        background: rgba(123, 44, 191, 0.1);
+    }
+
+    .upload-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+
+    .upload-area h3 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+        color: #00d4ff;
+    }
+
+    .upload-area p {
+        color: #aaaaaa;
+        margin-bottom: 1.5rem;
+    }
+
+    #imageUpload {
+        display: none;
+    }
+
+    .preview-container {
+        margin-top: 2rem;
+        display: none;
+    }
+
+    .preview-image {
+        max-width: 100%;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+        margin-bottom: 1rem;
+    }
+
+    .upload-btn-container {
+        margin-top: 2rem;
+        text-align: center;
+    }
+
+    .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+        margin: 3rem 0;
+    }
+
+    .feature-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(0, 212, 255, 0.3);
+        border-radius: 15px;
+        padding: 2rem;
+        text-align: center;
+        transition: all 0.3s;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-5px);
+        border-color: #00d4ff;
+        box-shadow: 0 8px 25px rgba(0, 212, 255, 0.4);
+    }
+
+    .feature-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+
+    .feature-card h3 {
+        font-size: 1.3rem;
+        margin-bottom: 0.5rem;
+        color: #00d4ff;
+    }
+
+    .feature-card p {
+        color: #aaaaaa;
+    }
+
+    .recent-uploads {
+        margin-top: 4rem;
+    }
+
+    .recent-uploads h2 {
+        text-align: center;
+        font-size: 2rem;
+        margin-bottom: 2rem;
+        color: #00d4ff;
+    }
+
+    .gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .gallery-item {
+        position: relative;
+        border-radius: 10px;
+        overflow: hidden;
+        transition: all 0.3s;
+        border: 2px solid rgba(0, 212, 255, 0.3);
+    }
+
+    .gallery-item:hover {
+        transform: scale(1.05);
+        border-color: #00d4ff;
+        box-shadow: 0 8px 25px rgba(0, 212, 255, 0.5);
+    }
+
+    .gallery-item img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+    }
+
+    .gallery-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+        padding: 1rem;
+        color: white;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h1>🌙 Lunar Crater Detector</h1>
+    <p>Upload lunar surface images and detect craters using advanced YOLOv8 AI technology. Perfect for analyzing Chandrayaan-2 TMC imagery.</p>
+</div>
+
+<div class="upload-section">
+    <form method="post" enctype="multipart/form-data" id="uploadForm">
+        {% csrf_token %}
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📤</div>
+            <h3>Drop your image here or click to browse</h3>
+            <p>Supports JPG, PNG, TIF formats • Max size: 10MB</p>
+            {{ form.original_image }}
+            <label for="imageUpload" class="btn btn-primary">Choose Image</label>
+        </div>
+        
+        <div class="preview-container" id="previewContainer">
+            <img id="imagePreview" class="preview-image" alt="Preview">
+            <div class="upload-btn-container">
+                <button type="submit" class="btn btn-primary">🚀 Detect Craters</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div class="features">
+    <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3>YOLOv8 Powered</h3>
+        <p>State-of-the-art deep learning model trained on lunar crater datasets</p>
+    </div>
+    <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Fast Detection</h3>
+        <p>Process images in seconds with high accuracy and precision</p>
+    </div>
+    <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Detailed Analysis</h3>
+        <p>Get crater count, locations, and visual annotations</p>
+    </div>
+    <div class="feature-card">
+        <div class="feature-icon">🌍</div>
+        <h3>ISRO Ready</h3>
+        <p>Optimized for Chandrayaan-2 TMC imagery analysis</p>
+    </div>
+</div>
+
+{% if recent_uploads %}
+<div class="recent-uploads">
+    <h2>📸 Recent Detections</h2>
+    <div class="gallery-grid">
+        {% for image in recent_uploads %}
+        <a href="{% url 'result' image.id %}" class="gallery-item">
+            {% if image.processed_image %}
+                <img src="{{ image.processed_image.url }}" alt="Processed Image">
+            {% else %}
+                <img src="{{ image.original_image.url }}" alt="Original Image">
+            {% endif %}
+            <div class="gallery-overlay">
+                {% if image.crater_count > 0 %}
+                    🔴 {{ image.crater_count }} crater{{ image.crater_count|pluralize }}
+                {% else %}
+                    ⏳ Processing...
+                {% endif %}
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const uploadArea = document.getElementById('uploadArea');
+    const imageUpload = document.getElementById('imageUpload');
+    const previewContainer = document.getElementById('previewContainer');
+    const imagePreview = document.getElementById('imagePreview');
+
+    // Click to upload
+    uploadArea.addEventListener('click', () => {
+        imageUpload.click();
+    });
+
+    // File input change
+    imageUpload.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+            previewImage(e.target.files[0]);
+        }
+    });
+
+    // Drag and drop
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            imageUpload.files = e.dataTransfer.files;
+            previewImage(e.dataTransfer.files[0]);
+        }
+    });
+
+    function previewImage(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imagePreview.src = e.target.result;
+            previewContainer.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,219 @@
+{% extends 'detector/base.html' %}
+
+{% block title %}Result - Lunar Crater Detector{% endblock %}
+
+{% block extra_css %}
+<style>
+    .result-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .result-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .result-header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+    }
+
+    .stat-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(0, 212, 255, 0.3);
+        border-radius: 15px;
+        padding: 1.5rem;
+        text-align: center;
+        transition: all 0.3s;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        border-color: #00d4ff;
+        box-shadow: 0 8px 25px rgba(0, 212, 255, 0.4);
+    }
+
+    .stat-icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #00d4ff;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        color: #aaaaaa;
+        font-size: 1rem;
+    }
+
+    .comparison-section {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
+
+    .image-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(0, 212, 255, 0.3);
+        border-radius: 15px;
+        overflow: hidden;
+        transition: all 0.3s;
+    }
+
+    .image-card:hover {
+        border-color: #00d4ff;
+        box-shadow: 0 8px 25px rgba(0, 212, 255, 0.4);
+    }
+
+    .image-card-header {
+        background: rgba(0, 212, 255, 0.1);
+        padding: 1rem;
+        text-align: center;
+        border-bottom: 2px solid rgba(0, 212, 255, 0.3);
+    }
+
+    .image-card-header h3 {
+        font-size: 1.3rem;
+        color: #00d4ff;
+    }
+
+    .image-card-body {
+        padding: 1rem;
+    }
+
+    .image-card img {
+        width: 100%;
+        border-radius: 10px;
+        transition: all 0.3s;
+    }
+
+    .image-card img:hover {
+        transform: scale(1.05);
+    }
+
+    .action-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-top: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .success-animation {
+        text-align: center;
+        font-size: 5rem;
+        margin-bottom: 1rem;
+        animation: bounce 1s ease infinite;
+    }
+
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-20px); }
+    }
+
+    .download-link {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background: rgba(0, 212, 255, 0.2);
+        border: 1px solid #00d4ff;
+        border-radius: 5px;
+        color: #00d4ff;
+        text-decoration: none;
+        margin-top: 1rem;
+        transition: all 0.3s;
+    }
+
+    .download-link:hover {
+        background: rgba(0, 212, 255, 0.3);
+        transform: translateY(-2px);
+    }
+
+    @media (max-width: 768px) {
+        .comparison-section {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="result-container">
+    <div class="result-header">
+        <div class="success-animation">✅</div>
+        <h1>Detection Complete!</h1>
+        <p style="color: #aaaaaa; font-size: 1.1rem;">Your lunar surface image has been analyzed</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">🔴</div>
+            <div class="stat-value">{{ uploaded_image.crater_count }}</div>
+            <div class="stat-label">Craters Detected</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">📅</div>
+            <div class="stat-value">{{ uploaded_image.uploaded_at|date:"M d" }}</div>
+            <div class="stat-label">Upload Date</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">⏱️</div>
+            <div class="stat-value">{{ uploaded_image.processed_at|date:"H:i" }}</div>
+            <div class="stat-label">Processing Time</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🤖</div>
+            <div class="stat-value">YOLOv8</div>
+            <div class="stat-label">AI Model</div>
+        </div>
+    </div>
+
+    <div class="comparison-section">
+        <div class="image-card">
+            <div class="image-card-header">
+                <h3>📷 Original Image</h3>
+            </div>
+            <div class="image-card-body">
+                <img src="{{ uploaded_image.original_image.url }}" alt="Original Image">
+                <a href="{{ uploaded_image.original_image.url }}" download class="download-link">
+                    📥 Download Original
+                </a>
+            </div>
+        </div>
+
+        <div class="image-card">
+            <div class="image-card-header">
+                <h3>🎯 Detected Craters</h3>
+            </div>
+            <div class="image-card-body">
+                <img src="{{ uploaded_image.processed_image.url }}" alt="Processed Image">
+                <a href="{{ uploaded_image.processed_image.url }}" download class="download-link">
+                    📥 Download Result
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="action-buttons">
+        <a href="{% url 'index' %}" class="btn btn-primary">🚀 Analyze Another Image</a>
+        <a href="{% url 'gallery' %}" class="btn btn-secondary">📸 View Gallery</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,152 @@
+{% extends 'detector/base.html' %}
+
+{% block title %}Gallery - Lunar Crater Detector{% endblock %}
+
+{% block extra_css %}
+<style>
+    .gallery-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .gallery-header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
+
+    .gallery-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(0, 212, 255, 0.3);
+        border-radius: 15px;
+        overflow: hidden;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+
+    .gallery-card:hover {
+        transform: translateY(-10px);
+        border-color: #00d4ff;
+        box-shadow: 0 12px 35px rgba(0, 212, 255, 0.5);
+    }
+
+    .gallery-card-image {
+        width: 100%;
+        height: 250px;
+        object-fit: cover;
+        transition: all 0.3s;
+    }
+
+    .gallery-card:hover .gallery-card-image {
+        transform: scale(1.1);
+    }
+
+    .gallery-card-info {
+        padding: 1.5rem;
+    }
+
+    .crater-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+
+    .date-info {
+        color: #aaaaaa;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+    }
+
+    .empty-gallery {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(0, 212, 255, 0.3);
+        border-radius: 15px;
+    }
+
+    .empty-gallery-icon {
+        font-size: 5rem;
+        margin-bottom: 1rem;
+    }
+
+    .empty-gallery h2 {
+        font-size: 2rem;
+        color: #00d4ff;
+        margin-bottom: 1rem;
+    }
+
+    .empty-gallery p {
+        color: #aaaaaa;
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+    }
+
+    .view-link {
+        color: #00d4ff;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+
+    .view-link:hover {
+        color: #7b2cbf;
+    }
+
+    @media (max-width: 768px) {
+        .gallery-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="gallery-header">
+    <h1>📸 Detection Gallery</h1>
+    <p style="color: #aaaaaa; font-size: 1.1rem;">Browse all processed lunar surface images</p>
+</div>
+
+{% if images %}
+<div class="gallery-grid">
+    {% for image in images %}
+    <a href="{% url 'result' image.id %}" style="text-decoration: none; color: inherit;">
+        <div class="gallery-card">
+            <img src="{{ image.processed_image.url }}" alt="Processed Image" class="gallery-card-image">
+            <div class="gallery-card-info">
+                <div class="crater-badge">
+                    🔴 {{ image.crater_count }} Crater{{ image.crater_count|pluralize }}
+                </div>
+                <div class="date-info">
+                    📅 {{ image.uploaded_at|date:"F d, Y" }}<br>
+                    ⏱️ {{ image.processed_at|date:"H:i" }}
+                </div>
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-gallery">
+    <div class="empty-gallery-icon">🌙</div>
+    <h2>No Detections Yet</h2>
+    <p>Start by uploading your first lunar surface image to see crater detection in action!</p>
+    <a href="{% url 'index' %}" class="btn btn-primary">🚀 Upload First Image</a>
+</div>
+{% endif %}
+{% endblock %}
