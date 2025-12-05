@@ -24,10 +24,7 @@ A beautiful Django web application for detecting lunar craters using YOLOv8 AI t
 
 ## 🛠️ Installation & Setup
 
-1. **Virtual Environment** (Already created at `venv_django`)
-   ```powershell
-   & d:\python\isro\crater_web_app\venv_django\Scripts\Activate.ps1
-   ```
+1. **Virtual Environment** Create a vertual environment and install the dependencies from the requirements.txt
 
 2. **All dependencies are already installed:**
    - Django 6.0
@@ -203,3 +200,4 @@ ISRO Hackathon Project - 2025
 ---
 
 **Powered by YOLOv8 | Built with Django | ISRO Chandrayaan-2 TMC Compatible**
+
