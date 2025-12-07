@@ -81,7 +81,7 @@ def process_image(request, image_id):
                     
                     # Draw the circle
                     cv2.circle(frame, (center_x, center_y), radius, (0, 255, 0), 4)
-                    text_to_display = f"CRATER {crater_count}"
+                    text_to_display = f"{crater_count}"
                     cv2.putText(frame, text_to_display, (center_x, center_y - radius - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 1.3, (0, 255, 0), 3, cv2.LINE_AA)
         
