@@ -284,10 +284,23 @@ def detect_and_match_crater(query_path, moon_path, selected_algorithm='all'):
         print("✗ No craters found above confidence threshold")
         return None
     
-    # Crop the first crater
+    # Crop the first crater with padding for better feature detection
     x1, y1, x2, y2 = first_crater
-    crater_img = query_img[y1:y2, x1:x2].copy()
-    print(f"✓ Crater cropped: {x2-x1}x{y2-y1} pixels")
+    crater_width = x2 - x1
+    crater_height = y2 - y1
+    
+    # Add 50% padding around the crater (or minimum 30 pixels)
+    padding_x = max(int(crater_width * 0.5), 30)
+    padding_y = max(int(crater_height * 0.5), 30)
+    
+    # Expand crop area with bounds checking
+    crop_x1 = max(0, x1 - padding_x)
+    crop_y1 = max(0, y1 - padding_y)
+    crop_x2 = min(query_img.shape[1], x2 + padding_x)
+    crop_y2 = min(query_img.shape[0], y2 + padding_y)
+    
+    crater_img = query_img[crop_y1:crop_y2, crop_x1:crop_x2].copy()
+    print(f"✓ Crater cropped with context: {crop_x2-crop_x1}x{crop_y2-crop_y1} pixels (original: {crater_width}x{crater_height})")
     
     print("\n[STEP 4] Loading moon.tif dataset...")
     # Read moon.tif
@@ -324,7 +337,12 @@ def detect_and_match_crater(query_path, moon_path, selected_algorithm='all'):
     
     # Convert crater crop to grayscale
     crater_gray = cv2.cvtColor(crater_img, cv2.COLOR_BGR2GRAY)
-    print("✓ Images converted to grayscale for feature matching")
+    
+    # Enhance contrast for better feature detection
+    crater_gray = cv2.equalizeHist(crater_gray)
+    moon_gray = cv2.equalizeHist(moon_gray)
+    
+    print("✓ Images converted to grayscale and enhanced for feature matching")
     
     # Dictionary to store results from all methods
     all_matches = {}
@@ -339,9 +357,11 @@ def detect_and_match_crater(query_path, moon_path, selected_algorithm='all'):
             kp1_sift, des1_sift = sift.detectAndCompute(crater_gray, None)
             kp2_sift, des2_sift = sift.detectAndCompute(moon_gray, None)
             
-            print(f"    Keypoints detected - Query: {len(kp1_sift)}, Moon: {len(kp2_sift)}")
+            kp1_count = len(kp1_sift) if kp1_sift is not None else 0
+            kp2_count = len(kp2_sift) if kp2_sift is not None else 0
+            print(f"    Keypoints detected - Query: {kp1_count}, Moon: {kp2_count}")
             
-            if des1_sift is not None and des2_sift is not None:
+            if des1_sift is not None and des2_sift is not None and len(des1_sift) > 0 and len(des2_sift) > 0:
                 bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=False)
                 matches_sift = bf.knnMatch(des1_sift, des2_sift, k=2)
                 
@@ -374,9 +394,11 @@ def detect_and_match_crater(query_path, moon_path, selected_algorithm='all'):
             kp1_surf, des1_surf = surf.detectAndCompute(crater_gray, None)
             kp2_surf, des2_surf = surf.detectAndCompute(moon_gray, None)
             
-            print(f"    Keypoints detected - Query: {len(kp1_surf)}, Moon: {len(kp2_surf)}")
+            kp1_count = len(kp1_surf) if kp1_surf is not None else 0
+            kp2_count = len(kp2_surf) if kp2_surf is not None else 0
+            print(f"    Keypoints detected - Query: {kp1_count}, Moon: {kp2_count}")
             
-            if des1_surf is not None and des2_surf is not None:
+            if des1_surf is not None and des2_surf is not None and len(des1_surf) > 0 and len(des2_surf) > 0:
                 bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=False)
                 matches_surf = bf.knnMatch(des1_surf, des2_surf, k=2)
                 
@@ -405,13 +427,22 @@ def detect_and_match_crater(query_path, moon_path, selected_algorithm='all'):
     if selected_algorithm in ['all', 'orb']:
         print("\n  → Running ORB (Oriented FAST and Rotated BRIEF)...")
         try:
-            orb = cv2.ORB_create(nfeatures=5000)
+            # Increase features and adjust parameters for better detection
+            orb = cv2.ORB_create(
+                nfeatures=10000,  # Increased from 5000
+                scaleFactor=1.2,
+                nlevels=8,
+                edgeThreshold=15,  # Reduced to detect features closer to edges
+                patchSize=31
+            )
             kp1_orb, des1_orb = orb.detectAndCompute(crater_gray, None)
             kp2_orb, des2_orb = orb.detectAndCompute(moon_gray, None)
             
-            print(f"    Keypoints detected - Query: {len(kp1_orb)}, Moon: {len(kp2_orb)}")
+            kp1_count = len(kp1_orb) if kp1_orb is not None else 0
+            kp2_count = len(kp2_orb) if kp2_orb is not None else 0
+            print(f"    Keypoints detected - Query: {kp1_count}, Moon: {kp2_count}")
             
-            if des1_orb is not None and des2_orb is not None:
+            if des1_orb is not None and des2_orb is not None and len(des1_orb) > 0 and len(des2_orb) > 0:
                 bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
                 matches_orb = bf.knnMatch(des1_orb, des2_orb, k=2)
                 
