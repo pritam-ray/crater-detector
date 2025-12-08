@@ -2,6 +2,45 @@
 
 ## [Unreleased] - 2025-12-08
 
+### Fixed - Crater Matching "No Crater Detected" Error
+
+#### Problem
+Crater matching was failing with "No crater detected" error even when craters were clearly present. The issue occurred because:
+1. **Cropped crater images were too small** (39x36, 42x48 pixels)
+2. **Not enough features detected** - ORB returning 0 keypoints
+3. **Low contrast** making feature detection difficult
+
+#### Solution
+- **Expanded crop area**: Added 50% padding around detected crater (minimum 30 pixels)
+  - Example: 39x36 crater → 99x96 crop with context
+- **Increased ORB features**: 5000 → 10000 keypoints
+- **Enhanced ORB parameters**:
+  - scaleFactor: 1.2 for better scale invariance
+  - edgeThreshold: 31 → 15 to detect features near edges
+  - nlevels: 8 for multiple pyramid levels
+- **Image enhancement**: Applied histogram equalization to improve contrast
+- **Better error handling**: Check keypoint lists before accessing, verify descriptors exist
+
+#### Results
+**Before:**
+```
+✓ Crater cropped: 39x36 pixels
+Keypoints detected - Query: 0, Moon: 5000
+✗ ORB failed: No descriptors computed
+ERROR: No crater detected
+```
+
+**After:**
+```
+✓ Crater cropped with context: 99x96 pixels (original: 39x36)
+✓ Images converted to grayscale and enhanced
+Keypoints detected - Query: 621, Moon: 10000
+✓ ORB completed: 2 good matches found
+✓ Crater matching completed successfully!
+```
+
+---
+
 ### Added - Crater Search Algorithm Selection & Detailed Logging
 
 #### Features
