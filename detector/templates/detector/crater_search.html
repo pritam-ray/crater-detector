@@ -161,12 +161,81 @@
         }
     }
 
+    .algorithm-selector {
+        background: rgba(255, 255, 255, 0.03);
+        border: 2px solid rgba(0, 212, 255, 0.2);
+        border-radius: 15px;
+        padding: 2rem;
+        margin-top: 2rem;
+    }
+
+    .algorithm-selector h3 {
+        color: #00d4ff;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        font-size: 1.3rem;
+    }
+
+    .algorithm-options {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .algorithm-option {
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid rgba(0, 212, 255, 0.3);
+        border-radius: 10px;
+        padding: 1rem 1.5rem;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .algorithm-option:hover {
+        border-color: #00d4ff;
+        background: rgba(0, 212, 255, 0.1);
+        transform: translateX(5px);
+    }
+
+    .algorithm-option input[type="radio"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        accent-color: #00d4ff;
+    }
+
+    .algorithm-option label {
+        cursor: pointer;
+        flex: 1;
+        color: #ffffff;
+        font-size: 1rem;
+        margin: 0;
+    }
+
+    .algorithm-option.selected {
+        border-color: #00d4ff;
+        background: rgba(0, 212, 255, 0.15);
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+    }
+
     @media (max-width: 480px) {
         .hero h1 {
             font-size: 1.5rem;
         }
 
         .hero p {
+            font-size: 0.9rem;
+        }
+
+        .algorithm-selector {
+            padding: 1.5rem;
+        }
+
+        .algorithm-option {
+            padding: 0.8rem 1rem;
             font-size: 0.9rem;
         }
     }
@@ -176,7 +245,7 @@
 {% block content %}
 <div class="hero">
     <h1>🔍 Crater Search</h1>
-    <p>Upload a crater image to find its location in the lunar surface map using advanced feature matching algorithms (SIFT, SURF, ORB)</p>
+    <p>Upload a crater image to find its location in the lunar surface map using advanced feature matching algorithms</p>
 </div>
 
 <div class="search-section">
@@ -187,6 +256,19 @@
             <h3>Upload a crater image to search</h3>
             <p>Supports JPG, PNG, TIF formats • Max size: 10MB</p>
             {{ form.search_image }}
+        </div>
+
+        <div class="algorithm-selector">
+            <h3>⚙️ Select Matching Algorithm</h3>
+            <div class="algorithm-options">
+                {% for value, label in form.algorithm.field.choices %}
+                <div class="algorithm-option" data-value="{{ value }}">
+                    <input type="radio" name="algorithm" value="{{ value }}" id="algo_{{ value }}"
+                           {% if form.algorithm.value == value or value == 'orb' and not form.algorithm.value %}checked{% endif %}>
+                    <label for="algo_{{ value }}">{{ label }}</label>
+                </div>
+                {% endfor %}
+            </div>
         </div>
         
         <div class="preview-container" id="previewContainer">
@@ -261,5 +343,30 @@
         };
         reader.readAsDataURL(file);
     }
+
+    // Algorithm selection handling
+    const algorithmOptions = document.querySelectorAll('.algorithm-option');
+    
+    algorithmOptions.forEach(option => {
+        const radio = option.querySelector('input[type="radio"]');
+        
+        // Update selected class on page load
+        if (radio.checked) {
+            option.classList.add('selected');
+        }
+        
+        // Handle click on option div
+        option.addEventListener('click', () => {
+            algorithmOptions.forEach(opt => opt.classList.remove('selected'));
+            option.classList.add('selected');
+            radio.checked = true;
+        });
+        
+        // Handle radio button change
+        radio.addEventListener('change', () => {
+            algorithmOptions.forEach(opt => opt.classList.remove('selected'));
+            option.classList.add('selected');
+        });
+    });
 </script>
 {% endblock %}

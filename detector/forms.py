@@ -4,6 +4,14 @@ from .models import UploadedImage
 
 class CraterSearchForm(forms.Form):
     """Form for uploading crater image to search in moon.tif"""
+    
+    ALGORITHM_CHOICES = [
+        ('all', 'All Algorithms (SIFT, SURF, ORB) - Best accuracy, slower'),
+        ('sift', 'SIFT Only - Good accuracy, moderate speed'),
+        ('surf', 'SURF Only - Good accuracy, moderate speed'),
+        ('orb', 'ORB Only - Fast processing, good for quick results'),
+    ]
+    
     search_image = forms.ImageField(
         label='Upload Crater Image to Search',
         widget=forms.FileInput(attrs={
@@ -11,6 +19,13 @@ class CraterSearchForm(forms.Form):
             'accept': 'image/*',
             'id': 'craterSearchUpload'
         })
+    )
+    
+    algorithm = forms.ChoiceField(
+        choices=ALGORITHM_CHOICES,
+        widget=forms.RadioSelect(attrs={'class': 'algorithm-choice'}),
+        initial='orb',
+        label='Select Matching Algorithm'
     )
     
     def clean_search_image(self):

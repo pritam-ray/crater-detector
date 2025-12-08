@@ -60,15 +60,17 @@ The Lunar Crater Detector is a state-of-the-art web application designed for aut
 
 ### 2. **Crater Location Search**
 - Upload a crater image to find its location on the lunar surface map
+- **User-selectable matching algorithms** for speed/accuracy balance:
+  - **All Algorithms** - Runs SIFT, SURF, and ORB, selects best (most accurate, slower)
+  - **SIFT Only** - Scale-Invariant Feature Transform (good accuracy, moderate speed)
+  - **SURF Only** - Speeded-Up Robust Features (good accuracy, moderate speed)
+  - **ORB Only** - Oriented FAST and Rotated BRIEF (fastest, good accuracy) - **Default**
 - Automatic first crater detection and cropping
-- Multi-algorithm matching:
-  - **SIFT** (Scale-Invariant Feature Transform)
-  - **SURF** (Speeded-Up Robust Features)
-  - **ORB** (Oriented FAST and Rotated BRIEF)
-- Automatic best-match selection based on feature matching quality
+- **Detailed terminal logging** showing processing steps, keypoints, and match statistics
 - Visual representation with marked location on moon.tif (55MB lunar surface map)
-- Algorithm comparison showing match counts for all three methods
+- Algorithm comparison showing match counts
 - Optimized image quality for fast web display
+- ~66% faster processing when using single algorithm vs. all three
 
 ### 3. **Image Gallery**
 - Browse all processed crater detection results
@@ -258,19 +260,30 @@ Access the application at: `http://127.0.0.1:8000/`
 ### Crater Location Search Workflow
 
 1. Navigate to **Crater Search** page
-2. Upload an image containing a crater
-3. System automatically:
+2. **Select your preferred matching algorithm:**
+   - **ORB Only** (default) - Fastest, good for quick results
+   - **SIFT Only** - Good accuracy, moderate speed
+   - **SURF Only** - Good accuracy, moderate speed  
+   - **All Algorithms** - Best accuracy, runs all three and picks best (slower)
+3. Upload an image containing a crater
+4. System automatically:
    - Detects the first crater using YOLO
    - Crops the crater region
-   - Matches against moon.tif using SIFT, SURF, and ORB
-   - Selects the best matching algorithm
-4. View results:
+   - Runs selected algorithm(s) to match against moon.tif
+   - Displays detailed logs in terminal (step-by-step progress)
+   - Selects best match if multiple algorithms used
+5. View results:
    - Best algorithm name and match count
-   - Algorithm comparison table
+   - Algorithm comparison (if "All Algorithms" selected)
    - Marked location on lunar surface map
    - Coordinates (X, Y in pixels)
-5. Download the result image
-6. Search for another crater or return home
+6. Check terminal for detailed processing logs:
+   - Model loading status
+   - Crater detection details (confidence, coordinates)
+   - Keypoints detected in images
+   - Match statistics for each algorithm
+7. Download the result image
+8. Search for another crater or return home
 
 ### Admin Panel
 
