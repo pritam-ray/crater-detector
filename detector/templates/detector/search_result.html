@@ -179,97 +179,59 @@
 <div class="result-container">
     <div class="result-header">
         <div class="success-animation">✅</div>
-        <h1>Crater Matching Complete!</h1>
-        <p style="color: #aaaaaa; font-size: 1.1rem;">Feature matching results using SIFT, SURF, and ORB algorithms</p>
+        <h1>Crater Location Found!</h1>
+        <p style="color: #aaaaaa; font-size: 1.1rem;">First crater detected and matched in lunar surface map</p>
     </div>
 
-    <div class="results-grid">
-        {% if results.SIFT %}
-        <div class="result-card">
-            <div class="result-card-header">
-                <span class="algorithm-badge">🎯 SIFT</span>
-                <h3>Scale-Invariant Feature Transform</h3>
-            </div>
-            <div class="result-card-body">
-                <img src="{{ MEDIA_URL }}{{ results.SIFT }}" alt="SIFT Matching Result" onclick="window.open(this.src, '_blank')">
-                <div style="text-align: center;">
-                    <a href="{{ MEDIA_URL }}{{ results.SIFT }}" download class="download-link">
-                        📥 Download SIFT Result
-                    </a>
-                </div>
-            </div>
+    <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+        <div class="stat-card" style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 2px solid rgba(0, 212, 255, 0.3); border-radius: 15px; padding: 1.5rem; text-align: center;">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎯</div>
+            <div style="font-size: 2rem; font-weight: bold; color: #00d4ff; margin-bottom: 0.5rem;">{{ best_method }}</div>
+            <div style="color: #aaaaaa; font-size: 1rem;">Best Algorithm</div>
         </div>
-        {% else %}
-        <div class="result-card">
-            <div class="result-card-header">
-                <span class="algorithm-badge">🎯 SIFT</span>
-                <h3>Scale-Invariant Feature Transform</h3>
-            </div>
-            <div class="result-card-body">
-                <div class="no-result">
-                    <p>❌ SIFT matching failed or found no significant matches</p>
-                </div>
-            </div>
+        <div class="stat-card" style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 2px solid rgba(0, 212, 255, 0.3); border-radius: 15px; padding: 1.5rem; text-align: center;">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔗</div>
+            <div style="font-size: 2rem; font-weight: bold; color: #00d4ff; margin-bottom: 0.5rem;">{{ match_count }}</div>
+            <div style="color: #aaaaaa; font-size: 1rem;">Feature Matches</div>
+        </div>
+        {% if crater_location %}
+        <div class="stat-card" style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 2px solid rgba(0, 212, 255, 0.3); border-radius: 15px; padding: 1.5rem; text-align: center;">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📍</div>
+            <div style="font-size: 1.2rem; font-weight: bold; color: #00d4ff; margin-bottom: 0.5rem;">X: {{ crater_location.0 }}<br>Y: {{ crater_location.1 }}</div>
+            <div style="color: #aaaaaa; font-size: 1rem;">Location (pixels)</div>
         </div>
         {% endif %}
+    </div>
 
-        {% if results.SURF %}
-        <div class="result-card">
-            <div class="result-card-header">
-                <span class="algorithm-badge">⚡ SURF</span>
-                <h3>Speeded-Up Robust Features</h3>
+    <!-- Algorithm Comparison -->
+    <div style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 2px solid rgba(0, 212, 255, 0.3); border-radius: 15px; padding: 2rem; margin-bottom: 3rem;">
+        <h3 style="color: #00d4ff; text-align: center; margin-bottom: 1.5rem; font-size: 1.5rem;">Algorithm Comparison</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+            {% for method, count in all_methods.items %}
+            <div style="text-align: center; padding: 1rem; background: rgba(0, 212, 255, 0.05); border-radius: 10px; {% if method == best_method %}border: 2px solid #00d4ff;{% endif %}">
+                <div style="font-size: 1.2rem; font-weight: bold; color: {% if method == best_method %}#00d4ff{% else %}#aaaaaa{% endif %};">{{ method }}</div>
+                <div style="font-size: 1.8rem; color: {% if method == best_method %}#00d4ff{% else %}#aaaaaa{% endif %}; margin-top: 0.5rem;">{{ count }}</div>
+                <div style="font-size: 0.8rem; color: #aaaaaa;">matches</div>
             </div>
-            <div class="result-card-body">
-                <img src="{{ MEDIA_URL }}{{ results.SURF }}" alt="SURF Matching Result" onclick="window.open(this.src, '_blank')">
-                <div style="text-align: center;">
-                    <a href="{{ MEDIA_URL }}{{ results.SURF }}" download class="download-link">
-                        📥 Download SURF Result
-                    </a>
-                </div>
-            </div>
+            {% endfor %}
         </div>
-        {% else %}
-        <div class="result-card">
-            <div class="result-card-header">
-                <span class="algorithm-badge">⚡ SURF</span>
-                <h3>Speeded-Up Robust Features</h3>
-            </div>
-            <div class="result-card-body">
-                <div class="no-result">
-                    <p>❌ SURF matching failed. Note: SURF requires opencv-contrib-python</p>
-                </div>
-            </div>
-        </div>
-        {% endif %}
+    </div>
 
-        {% if results.ORB %}
-        <div class="result-card">
-            <div class="result-card-header">
-                <span class="algorithm-badge">🚀 ORB</span>
-                <h3>Oriented FAST and Rotated BRIEF</h3>
-            </div>
-            <div class="result-card-body">
-                <img src="{{ MEDIA_URL }}{{ results.ORB }}" alt="ORB Matching Result" onclick="window.open(this.src, '_blank')">
-                <div style="text-align: center;">
-                    <a href="{{ MEDIA_URL }}{{ results.ORB }}" download class="download-link">
-                        📥 Download ORB Result
-                    </a>
-                </div>
+    <!-- Matched Location Image -->
+    <div class="result-card">
+        <div class="result-card-header">
+            <span class="algorithm-badge">📍 Matched Crater Location</span>
+            <h3>Found in Lunar Surface Map</h3>
+        </div>
+        <div class="result-card-body">
+            <img src="{{ MEDIA_URL }}{{ result_image }}" alt="Crater Location in Moon Map" onclick="window.open(this.src, '_blank')" style="cursor: pointer;">
+            <div style="text-align: center;">
+                <p style="color: #aaaaaa; margin: 1rem 0;">Click image to view full size. Green circle shows the matched crater location.</p>
+                <a href="{{ MEDIA_URL }}{{ result_image }}" download class="download-link">
+                    📥 Download Result Image
+                </a>
             </div>
         </div>
-        {% else %}
-        <div class="result-card">
-            <div class="result-card-header">
-                <span class="algorithm-badge">🚀 ORB</span>
-                <h3>Oriented FAST and Rotated BRIEF</h3>
-            </div>
-            <div class="result-card-body">
-                <div class="no-result">
-                    <p>❌ ORB matching failed or found no significant matches</p>
-                </div>
-            </div>
-        </div>
-        {% endif %}
     </div>
 
     <div class="action-buttons">

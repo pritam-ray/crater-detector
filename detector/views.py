@@ -152,7 +152,7 @@ def delete_image(request, image_id):
 
 
 def crater_search(request):
-    """Search for a crater in moon.tif using SIFT, SURF, and ORB"""
+    """Search for a crater in moon.tif using SIFT, SURF, and ORB - automatically detects first crater"""
     if request.method == 'POST':
         form = CraterSearchForm(request.POST, request.FILES)
         if form.is_valid():
@@ -175,34 +175,41 @@ def crater_search(request):
                 return redirect('crater_search')
             
             try:
-                # Perform matching with all three methods
-                results = perform_crater_matching(temp_path, moon_path)
+                # Detect first crater and perform matching
+                result_data = detect_and_match_crater(temp_path, moon_path)
                 
-                # Save result images
-                result_files = {}
+                if result_data is None:
+                    messages.error(request, 'No crater detected in the uploaded image. Please upload an image with at least one crater.')
+                    return redirect('crater_search')
+                
+                # Save result image
                 results_dir = os.path.join(settings.MEDIA_ROOT, 'search_results')
                 os.makedirs(results_dir, exist_ok=True)
                 
                 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                result_filename = f'crater_match_{timestamp}.jpg'
+                result_path = os.path.join(results_dir, result_filename)
                 
-                for method, result_img in results.items():
-                    if result_img is not None:
-                        result_filename = f'{method}_match_{timestamp}.jpg'
-                        result_path = os.path.join(results_dir, result_filename)
-                        cv2.imwrite(result_path, result_img)
-                        result_files[method] = os.path.join('search_results', result_filename)
+                # Save with reduced quality for web display
+                cv2.imwrite(result_path, result_data['result_image'], [cv2.IMWRITE_JPEG_QUALITY, 70])
                 
                 # Clean up temp file
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
                 
                 return render(request, 'detector/search_result.html', {
-                    'results': result_files,
+                    'result_image': os.path.join('search_results', result_filename),
+                    'best_method': result_data['best_method'],
+                    'match_count': result_data['match_count'],
+                    'crater_location': result_data['crater_location'],
+                    'all_methods': result_data['all_methods'],
                     'search_image': search_image.name
                 })
                 
             except Exception as e:
                 messages.error(request, f'Error during crater matching: {str(e)}')
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
                 return redirect('crater_search')
     else:
         form = CraterSearchForm()
@@ -210,60 +217,81 @@ def crater_search(request):
     return render(request, 'detector/crater_search.html', {'form': form})
 
 
-def perform_crater_matching(query_path, moon_path):
-    """Perform crater matching using SIFT, SURF, and ORB algorithms"""
-    # Read images with different flags to handle various formats
-    query_img = cv2.imread(query_path, cv2.IMREAD_COLOR)
-    moon_img = cv2.imread(moon_path, cv2.IMREAD_UNCHANGED)
+def detect_and_match_crater(query_path, moon_path):
+    """Detect first crater in query image, crop it, and match using SIFT, SURF, and ORB"""
     
-    if query_img is None or moon_img is None:
-        raise ValueError('Failed to read images')
+    # Load YOLO model for crater detection
+    model_path = os.path.join(settings.BASE_DIR, 'train 55', 'weights', 'last.pt')
+    if not os.path.exists(model_path):
+        raise ValueError('YOLO model not found')
+    
+    model = YOLO(model_path)
+    
+    # Read query image and detect craters
+    query_img = cv2.imread(query_path)
+    if query_img is None:
+        raise ValueError('Failed to read query image')
+    
+    # Perform crater detection
+    results = model(query_img)[0]
+    threshold = 0.1
+    
+    # Find first detected crater
+    first_crater = None
+    for result in results.boxes.data.tolist():
+        x1, y1, x2, y2, score, class_id = result
+        if score > threshold:
+            first_crater = (int(x1), int(y1), int(x2), int(y2))
+            break
+    
+    if first_crater is None:
+        return None
+    
+    # Crop the first crater
+    x1, y1, x2, y2 = first_crater
+    crater_img = query_img[y1:y2, x1:x2].copy()
+    
+    # Read moon.tif
+    moon_img = cv2.imread(moon_path, cv2.IMREAD_UNCHANGED)
+    if moon_img is None:
+        raise ValueError('Failed to read moon.tif')
     
     # Handle different image formats for moon.tif
     if len(moon_img.shape) == 2:
-        # Already grayscale
         moon_gray = moon_img
-        # Convert to BGR for display
-        moon_img = cv2.cvtColor(moon_img, cv2.COLOR_GRAY2BGR)
+        moon_img_bgr = cv2.cvtColor(moon_img, cv2.COLOR_GRAY2BGR)
     elif len(moon_img.shape) == 3:
         if moon_img.shape[2] == 1:
-            # Single channel image
             moon_gray = moon_img[:, :, 0]
-            moon_img = cv2.cvtColor(moon_gray, cv2.COLOR_GRAY2BGR)
+            moon_img_bgr = cv2.cvtColor(moon_gray, cv2.COLOR_GRAY2BGR)
         elif moon_img.shape[2] == 3:
-            # Standard BGR image
+            moon_img_bgr = moon_img.copy()
             moon_gray = cv2.cvtColor(moon_img, cv2.COLOR_BGR2GRAY)
         elif moon_img.shape[2] == 4:
-            # BGRA image
-            moon_img = cv2.cvtColor(moon_img, cv2.COLOR_BGRA2BGR)
-            moon_gray = cv2.cvtColor(moon_img, cv2.COLOR_BGR2GRAY)
+            moon_img_bgr = cv2.cvtColor(moon_img, cv2.COLOR_BGRA2BGR)
+            moon_gray = cv2.cvtColor(moon_img_bgr, cv2.COLOR_BGR2GRAY)
         else:
-            # Unknown format, try to use first channel
             moon_gray = moon_img[:, :, 0]
-            moon_img = cv2.cvtColor(moon_gray, cv2.COLOR_GRAY2BGR)
+            moon_img_bgr = cv2.cvtColor(moon_gray, cv2.COLOR_GRAY2BGR)
     else:
-        raise ValueError(f'Unexpected image shape: {moon_img.shape}')
+        raise ValueError(f'Unexpected moon image shape: {moon_img.shape}')
     
-    # Convert query image to grayscale
-    if len(query_img.shape) == 2:
-        query_gray = query_img
-        query_img = cv2.cvtColor(query_img, cv2.COLOR_GRAY2BGR)
-    else:
-        query_gray = cv2.cvtColor(query_img, cv2.COLOR_BGR2GRAY)
+    # Convert crater crop to grayscale
+    crater_gray = cv2.cvtColor(crater_img, cv2.COLOR_BGR2GRAY)
     
-    results = {}
+    # Dictionary to store results from all methods
+    all_matches = {}
     
-    # 1. SIFT (Scale-Invariant Feature Transform)
+    # 1. SIFT Matching
     try:
         sift = cv2.SIFT_create()
-        kp1_sift, des1_sift = sift.detectAndCompute(query_gray, None)
+        kp1_sift, des1_sift = sift.detectAndCompute(crater_gray, None)
         kp2_sift, des2_sift = sift.detectAndCompute(moon_gray, None)
         
         if des1_sift is not None and des2_sift is not None:
             bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=False)
             matches_sift = bf.knnMatch(des1_sift, des2_sift, k=2)
             
-            # Apply ratio test
             good_matches_sift = []
             for match_pair in matches_sift:
                 if len(match_pair) == 2:
@@ -271,30 +299,26 @@ def perform_crater_matching(query_path, moon_path):
                     if m.distance < 0.75 * n.distance:
                         good_matches_sift.append(m)
             
-            # Draw matches
-            result_sift = cv2.drawMatches(query_img, kp1_sift, moon_img, kp2_sift, 
-                                         good_matches_sift[:50], None, 
-                                         flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
-            
-            # Add text with match count
-            cv2.putText(result_sift, f'SIFT: {len(good_matches_sift)} matches', 
-                       (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-            results['SIFT'] = result_sift
+            all_matches['SIFT'] = {
+                'matches': good_matches_sift,
+                'keypoints_query': kp1_sift,
+                'keypoints_moon': kp2_sift,
+                'count': len(good_matches_sift)
+            }
     except Exception as e:
         print(f'SIFT error: {e}')
-        results['SIFT'] = None
+        all_matches['SIFT'] = {'count': 0}
     
-    # 2. SURF (Speeded-Up Robust Features) - requires opencv-contrib-python
+    # 2. SURF Matching
     try:
         surf = cv2.xfeatures2d.SURF_create(400)
-        kp1_surf, des1_surf = surf.detectAndCompute(query_gray, None)
+        kp1_surf, des1_surf = surf.detectAndCompute(crater_gray, None)
         kp2_surf, des2_surf = surf.detectAndCompute(moon_gray, None)
         
         if des1_surf is not None and des2_surf is not None:
             bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=False)
             matches_surf = bf.knnMatch(des1_surf, des2_surf, k=2)
             
-            # Apply ratio test
             good_matches_surf = []
             for match_pair in matches_surf:
                 if len(match_pair) == 2:
@@ -302,30 +326,26 @@ def perform_crater_matching(query_path, moon_path):
                     if m.distance < 0.75 * n.distance:
                         good_matches_surf.append(m)
             
-            # Draw matches
-            result_surf = cv2.drawMatches(query_img, kp1_surf, moon_img, kp2_surf, 
-                                         good_matches_surf[:50], None, 
-                                         flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
-            
-            # Add text with match count
-            cv2.putText(result_surf, f'SURF: {len(good_matches_surf)} matches', 
-                       (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-            results['SURF'] = result_surf
+            all_matches['SURF'] = {
+                'matches': good_matches_surf,
+                'keypoints_query': kp1_surf,
+                'keypoints_moon': kp2_surf,
+                'count': len(good_matches_surf)
+            }
     except Exception as e:
         print(f'SURF error: {e}')
-        results['SURF'] = None
+        all_matches['SURF'] = {'count': 0}
     
-    # 3. ORB (Oriented FAST and Rotated BRIEF)
+    # 3. ORB Matching
     try:
         orb = cv2.ORB_create(nfeatures=5000)
-        kp1_orb, des1_orb = orb.detectAndCompute(query_gray, None)
+        kp1_orb, des1_orb = orb.detectAndCompute(crater_gray, None)
         kp2_orb, des2_orb = orb.detectAndCompute(moon_gray, None)
         
         if des1_orb is not None and des2_orb is not None:
             bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
             matches_orb = bf.knnMatch(des1_orb, des2_orb, k=2)
             
-            # Apply ratio test
             good_matches_orb = []
             for match_pair in matches_orb:
                 if len(match_pair) == 2:
@@ -333,17 +353,79 @@ def perform_crater_matching(query_path, moon_path):
                     if m.distance < 0.75 * n.distance:
                         good_matches_orb.append(m)
             
-            # Draw matches
-            result_orb = cv2.drawMatches(query_img, kp1_orb, moon_img, kp2_orb, 
-                                        good_matches_orb[:50], None, 
-                                        flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
-            
-            # Add text with match count
-            cv2.putText(result_orb, f'ORB: {len(good_matches_orb)} matches', 
-                       (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-            results['ORB'] = result_orb
+            all_matches['ORB'] = {
+                'matches': good_matches_orb,
+                'keypoints_query': kp1_orb,
+                'keypoints_moon': kp2_orb,
+                'count': len(good_matches_orb)
+            }
     except Exception as e:
         print(f'ORB error: {e}')
-        results['ORB'] = None
+        all_matches['ORB'] = {'count': 0}
     
-    return results
+    # Determine best method based on match count
+    best_method = max(all_matches.items(), key=lambda x: x[1]['count'])
+    best_method_name = best_method[0]
+    best_data = best_method[1]
+    
+    if best_data['count'] == 0:
+        return None
+    
+    # Calculate crater location in moon image from best matches
+    crater_location = None
+    if 'matches' in best_data and len(best_data['matches']) > 0:
+        # Get average location from top matches
+        match_points = []
+        for match in best_data['matches'][:10]:  # Use top 10 matches
+            pt = best_data['keypoints_moon'][match.trainIdx].pt
+            match_points.append(pt)
+        
+        if match_points:
+            avg_x = int(sum(p[0] for p in match_points) / len(match_points))
+            avg_y = int(sum(p[1] for p in match_points) / len(match_points))
+            crater_location = (avg_x, avg_y)
+    
+    # Resize moon image for web display (reduce to 2000px width max)
+    max_width = 2000
+    if moon_img_bgr.shape[1] > max_width:
+        scale = max_width / moon_img_bgr.shape[1]
+        new_width = max_width
+        new_height = int(moon_img_bgr.shape[0] * scale)
+        moon_display = cv2.resize(moon_img_bgr, (new_width, new_height), interpolation=cv2.INTER_AREA)
+        
+        # Scale keypoints and location
+        if crater_location:
+            crater_location = (int(crater_location[0] * scale), int(crater_location[1] * scale))
+    else:
+        moon_display = moon_img_bgr.copy()
+    
+    # Draw matched region on moon image
+    if crater_location and 'matches' in best_data:
+        # Draw circle at detected location
+        radius = max(50, int(max(x2-x1, y2-y1) * 0.5))
+        if moon_display.shape[1] != moon_img_bgr.shape[1]:
+            radius = int(radius * (moon_display.shape[1] / moon_img_bgr.shape[1]))
+        
+        cv2.circle(moon_display, crater_location, radius, (0, 255, 0), 5)
+        cv2.putText(moon_display, f'Matched Location', 
+                   (crater_location[0] - 80, crater_location[1] - radius - 20),
+                   cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 3)
+    
+    # Add method info overlay
+    cv2.rectangle(moon_display, (10, 10), (500, 120), (0, 0, 0), -1)
+    cv2.rectangle(moon_display, (10, 10), (500, 120), (0, 255, 0), 2)
+    cv2.putText(moon_display, f'Best Match: {best_method_name}', 
+               (20, 45), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    cv2.putText(moon_display, f'Matches: {best_data["count"]}', 
+               (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    
+    # Prepare method comparison data
+    methods_data = {method: data['count'] for method, data in all_matches.items()}
+    
+    return {
+        'result_image': moon_display,
+        'best_method': best_method_name,
+        'match_count': best_data['count'],
+        'crater_location': crater_location,
+        'all_methods': methods_data
+    }
