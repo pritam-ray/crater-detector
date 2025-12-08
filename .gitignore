@@ -27,9 +27,9 @@ wheels/
 # Django
 *.log
 local_settings.py
-db.sqlite3
+# db.sqlite3  # Commented to include database
 db.sqlite3-journal
-media/
+# media/  # Commented to include media files (moon.tif and training data)
 staticfiles/
 
 # IDE

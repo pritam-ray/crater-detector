@@ -1,0 +1,18 @@
+# Dataset Configuration for YOLOv8 Crater Detection
+# Path: config.yaml
+
+# Update these paths according to your dataset location
+path: ../dataset  # Root directory of dataset (relative to this file)
+train: images/train  # Training images (relative to 'path')
+val: images/val      # Validation images (relative to 'path')
+test: images/test    # Test images (optional, relative to 'path')
+
+# Number of classes
+nc: 1  # Number of classes (1 for crater detection)
+
+# Class names
+names:
+  0: crater  # Class 0 is 'crater'
+
+# Optional: Additional dataset information
+# download: https://example.com/dataset.zip  # Dataset download URL (if applicable)
